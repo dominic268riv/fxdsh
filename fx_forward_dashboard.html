@@ -177,9 +177,9 @@ input.live-amber{background:var(--amber-bg)!important;border-color:var(--amber-m
   .dash-sub{font-size:11px}
   .note{font-size:9px}
 
-  /* Tickers: 2 cols on mobile */
-  .ticker-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-  .rfr-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  /* Tickers: 3 cols on mobile (fits iPhone well) */
+  .ticker-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .rfr-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   .pair-card,.rfr-card{padding:8px 10px}
   .pair-rate{font-size:14px}
   .pair-rate .pip{font-size:16px}
@@ -605,8 +605,25 @@ function onCcyChange(){syncAllFields();}
 function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' UTC';}
 
 /* ── Init ────────────────────────────────────────────────────── */
-buildFxTicker();buildRfrTicker();updateClock();
-setInterval(tickFx,2000);setInterval(updateClock,1000);
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',init);
+} else {
+  init();
+}
+function init(){
+  buildFxTicker();buildRfrTicker();updateClock();
+  setInterval(tickFx,2000);setInterval(updateClock,1000);
+  document.getElementById('tradedate').value=new Date().toISOString().slice(0,10);
+  document.getElementById('notional').addEventListener('blur',function(){
+    const raw=this.value.replace(/,/g,'');
+    const n=parseFloat(raw);
+    if(!isNaN(n)&&n>0)this.value=n.toLocaleString('en-US');
+  });
+  document.getElementById('notional').addEventListener('focus',function(){
+    this.value=this.value.replace(/,/g,'');
+  });
+  renderLog();
+}
 
 /* ── Pricer logic ────────────────────────────────────────────── */
 let lastPriced=null,trades=[],tradeCounter=0;
@@ -626,15 +643,6 @@ function computeDTM(){
 }
 document.getElementById('valuedate').addEventListener('change',computeDTM);
 document.getElementById('tradedate').addEventListener('change',computeDTM);
-document.getElementById('tradedate').value=new Date().toISOString().slice(0,10);
-document.getElementById('notional').addEventListener('blur',function(){
-  const raw=this.value.replace(/,/g,'');
-  const n=parseFloat(raw);
-  if(!isNaN(n)&&n>0)this.value=n.toLocaleString('en-US');
-});
-document.getElementById('notional').addEventListener('focus',function(){
-  this.value=this.value.replace(/,/g,'');
-});
 
 function setStatus(state,txt){document.getElementById('sdot').className='status-dot '+state;document.getElementById('stxt').textContent=txt;}
 function fmtNum(n,dec){return n.toFixed(dec||4);}
@@ -663,7 +671,7 @@ function price(){
   if(isNaN(r2))errs.push('enter sell ccy interest rate');
   if(isNaN(dtm)||dtm<=0)errs.push('set a valid value date / tenor');
   if(errs.length){setStatus('warn','Fix: '+errs.join(' · '));document.getElementById('bookBtn').disabled=true;return;}
-  const T=dtm/365,fwdMid=spot*Math.exp((r1-r2)*T),fwdPts=fwdMid-spot;
+  const T=dtm/365,fwdMid=spot*Math.exp((r2-r1)*T),fwdPts=fwdMid-spot;
   const pMult=(c2==='JPY'||c1==='JPY')?0.01:0.0001;
   const mRate=mp*pMult,clientRate=fwdMid+mRate;
   const usedStrike=isNaN(strike)||strike<=0?null:strike;
@@ -674,7 +682,7 @@ function price(){
   const r1name=getRFRName(c1)||c1+' rate';
   const r2name=getRFRName(c2)||c2+' rate';
   lastPriced={id:null,client,c1,c2,notional,spot,strike:usedStrike,r1:r1*100,r2:r2*100,dtm,tenor:document.getElementById('tenor').value,tradeDate:document.getElementById('tradedate').value,valueDate:document.getElementById('valuedate').value,dir:'buy',marginPips:mp,marginRevenue:mRev,clientRate,fwdMid,fwdPoints:fwdPts,counterValueMid:cvMid,bps,mtm,mtmPct,dec,sales:document.getElementById('sales').value.trim(),dealtype:document.getElementById('dealtype').value,settlement:document.getElementById('settlement').value};
-  document.getElementById('fwd-explain').innerHTML=`<strong>Theoretical forward (CIP):</strong> ${c1}/${c2} spot ${fmtNum(spot,dec)} × e<sup>(${r1name} ${(r1*100).toFixed(2)}% − ${r2name} ${(r2*100).toFixed(2)}%) × T</sup> = <strong>${fmtNum(fwdMid,dec)}</strong> · Fwd pts: ${fwdPts>=0?'+':''}${fmtNum(fwdPts*10000,1)} pips · ${dtm} calendar days`;
+  document.getElementById('fwd-explain').innerHTML=`<strong>Theoretical forward (CIP):</strong> ${c1}/${c2} spot ${fmtNum(spot,dec)} × e<sup>(${r2name} ${(r2*100).toFixed(2)}% − ${r1name} ${(r1*100).toFixed(2)}%) × T</sup> = <strong>${fmtNum(fwdMid,dec)}</strong> · Fwd pts: ${fwdPts>=0?'+':''}${fmtNum(fwdPts*10000,1)} pips · ${dtm} calendar days`;
   document.getElementById('res-grid').innerHTML=resCard('Fair forward (mid)',fmtNum(fwdMid,dec))+resCard('Fwd points',(fwdPts>=0?'+':'')+fmtNum(fwdPts*10000,1)+' pips')+resCard('Client rate',fmtNum(clientRate,dec),'',mp?`incl. ${mp}p margin`:'no margin applied')+resCard('Fwd premium/discount',fwdPts>0?'+'+fmtNum(fwdPts/spot*100,3)+'%':fmtNum(fwdPts/spot*100,3)+'%',fwdPts>0?'pos':'neg');
   document.getElementById('res-grid2').innerHTML=resCard('Notional',fmtCcy(notional,c1))+resCard('Counter value (mid)',fmtCcy(cvMid,c2))+resCard('MtM vs strike',usedStrike?(mtm>=0?'+':'')+fmtCcy(mtm,c2):'—',usedStrike?(mtm>=0?'pos':'neg'):'neu',usedStrike?`${mtmPct>=0?'+':''}${mtmPct.toFixed(2)}% of spot notional`:'enter strike to compute')+resCard('Margin (pips)',mp?mp+' pips':'—');
   document.getElementById('rev-grid').innerHTML=revCard('Gross revenue ('+c2+')',mp>0?fmtCcy(mRev,c2):'—',mp>0?`${mp} pip margin × ${fmtCcy(notional,c1)} notional`:'set a sales margin to compute',true)+revCard('Spread (bps on NV)',mp>0?bps.toFixed(1)+' bps':'—',mp>0?'margin / counter value × 10,000':'')+revCard('Revenue / 1M notional',mp>0?fmtCcy((mRev/notional)*1e6,c2):'—',mp>0?`per ${fmtCcy(1e6,c1)} traded`:'')+revCard('Client all-in rate',fmtNum(clientRate,dec),'vs mid '+fmtNum(fwdMid,dec));
@@ -740,7 +748,6 @@ function clearAll(){
   lastPriced=null;
 }
 
-renderLog();
 </script>
 </body>
 </html>
