@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FX Forward Sales Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f3;--bg3:#f9f9f7;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9b9b97;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+  --radius:8px;--radius-lg:12px;
+  --blue-bg:#e6f1fb;--blue-text:#0c447c;--blue-mid:#185fa5;
+  --green-bg:#e1f5ee;--green-text:#085041;--green-mid:#0f6e56;
+  --amber-bg:#faeeda;--amber-text:#633806;--amber-mid:#ba7517;
+  --red-text:#d85a30;
+  --purple-bg:#eeedfe;--purple-text:#3c3489;
+  --teal-bg:#e1f5ee;--teal-text:#085041;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1e1e1c;--bg2:#2a2a27;--bg3:#323230;
+    --text:#f0f0ec;--text2:#a8a8a4;--text3:#6e6e6a;
+    --border:rgba(255,255,255,0.10);--border2:rgba(255,255,255,0.20);
+    --blue-bg:#042c53;--blue-text:#b5d4f4;--blue-mid:#378add;
+    --green-bg:#04342c;--green-text:#9fe1cb;--green-mid:#1d9e75;
+    --amber-bg:#412402;--amber-text:#fac775;--amber-mid:#ef9f27;
+    --red-text:#f0997b;
+    --purple-bg:#26215c;--purple-text:#cecbf6;
+    --teal-bg:#04342c;--teal-text:#9fe1cb;
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+.page{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+input,select,button{font-family:inherit;font-size:13px;color:var(--text)}
+input,select{background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 10px;width:100%;outline:none;transition:border-color .15s,background .25s,color .25s}
+input:focus,select:focus{border-color:var(--blue-mid);box-shadow:0 0 0 2px rgba(24,95,165,0.15)}
+input[readonly]{background:var(--bg2);color:var(--text2)}
+button{background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 13px;cursor:pointer;color:var(--text);transition:background .15s,transform .1s}
+button:hover{background:var(--bg2)}
+button:active{transform:scale(.98)}
+.section-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;color:var(--text2);font-weight:500}
+.field .hint{font-size:10px;color:var(--text3);margin-top:1px;transition:color .2s}
+.divider{height:0.5px;background:var(--border);margin:16px 0}
+.row-label{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.badge{font-size:9px;padding:2px 7px;border-radius:4px;font-weight:600;background:var(--blue-bg);color:var(--blue-text)}
+.badge.opt{background:var(--amber-bg);color:var(--amber-text)}
+/* Header */
+.dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.dash-title{font-size:20px;font-weight:600;color:var(--text)}
+.dash-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.live-badge{display:flex;align-items:center;font-size:11px;color:var(--text2);gap:5px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#1D9E75;animation:pulse 1.8s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.ts{font-size:11px;color:var(--text3)}
+/* FX Ticker */
+.ticker-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:0}
+.pair-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 12px;transition:border-color .2s,box-shadow .2s;cursor:pointer;user-select:none;min-width:0}
+.pair-card:hover{border-color:var(--border2)}
+.pair-card.selected{border-color:var(--blue-mid);box-shadow:0 0 0 2px rgba(24,95,165,0.18)}
+.pair-name{font-size:10px;font-weight:600;color:var(--text2);letter-spacing:.05em;margin-bottom:4px}
+.pair-rate{font-size:16px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;line-height:1.2}
+.pair-rate .pip{font-size:19px}
+.pair-chg{font-size:10px;margin-top:3px;display:flex;align-items:center;gap:3px}
+.pair-chg.up{color:#1D9E75}
+.pair-chg.dn{color:#D85A30}
+.pair-spread{font-size:9px;color:var(--text3);margin-top:2px}
+@keyframes flashUp{0%{background:#9FE1CB}100%{background:var(--bg)}}
+@keyframes flashDn{0%{background:#F5C4B3}100%{background:var(--bg)}}
+.flash-up{animation:flashUp .4s ease-out}
+.flash-dn{animation:flashDn .4s ease-out}
+/* RFR Ticker */
+.rfr-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:0}
+.rfr-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 12px;min-width:0}
+.rfr-pair{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.04em;margin-bottom:2px}
+.rfr-name{font-size:10px;font-weight:600;color:var(--text2);letter-spacing:.04em;margin-bottom:4px}
+.rfr-rate{font-size:18px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;line-height:1.2}
+.rfr-rate span{font-size:12px;font-weight:400;color:var(--text3)}
+.rfr-cb{font-size:9px;color:var(--text3);margin-top:3px}
+.rfr-card.rfr-usd{background:var(--blue-bg);border-color:rgba(24,95,165,0.25)}
+.rfr-card.rfr-usd .rfr-pair{color:var(--blue-text)}
+.rfr-card.rfr-usd .rfr-name{color:var(--blue-text)}
+.rfr-card.rfr-usd .rfr-rate{color:var(--blue-text)}
+.rfr-card.rfr-usd .rfr-cb{color:var(--blue-text);opacity:.7}
+.rfr-card.active-buy{border-color:var(--blue-mid);box-shadow:0 0 0 2px rgba(24,95,165,0.18)}
+.rfr-card.active-sell{border-color:var(--amber-mid);box-shadow:0 0 0 2px rgba(186,117,23,0.18)}
+.rfr-card.active-both{border-color:var(--green-mid);box-shadow:0 0 0 2px rgba(15,110,86,0.18)}
+/* Seg */
+.seg{display:flex}
+.seg button{border-radius:0;border-right:none;font-size:11px;padding:5px 10px}
+.seg button:first-child{border-radius:var(--radius) 0 0 var(--radius)}
+.seg button:last-child{border-radius:0 var(--radius) var(--radius) 0;border-right:0.5px solid var(--border2)}
+.seg button.active{background:var(--bg2);font-weight:600}
+/* Results */
+.res-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.res-item .res-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.res-item .res-val{font-size:14px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+.res-item .res-val.pos{color:#1D9E75}
+.res-item .res-val.neg{color:#D85A30}
+.res-item .res-val.neu{color:var(--text2)}
+.fwd-note{font-size:10px;color:var(--text3);padding:8px 10px;background:var(--bg2);border-radius:0 var(--radius) var(--radius) 0;border-left:2px solid var(--blue-mid);margin-bottom:12px}
+/* Revenue */
+.rev-banner{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-top:12px}
+.rev-header{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.rev-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.rev-item .rev-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.rev-item .rev-val{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--green-mid)}
+.rev-item .rev-sub{font-size:9px;color:var(--text3);margin-top:2px}
+.rev-highlight{background:var(--green-bg);border-radius:var(--radius);padding:10px 14px;border:0.5px solid #5DCAA5}
+.rev-highlight .rev-label{color:var(--green-text)}
+.rev-highlight .rev-val{font-size:18px;color:var(--green-text)}
+/* Buttons */
+.btn-row{display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap}
+.btn-analyse{padding:8px 16px;background:var(--blue-mid);color:#e6f1fb;border:none;border-radius:var(--radius);cursor:pointer;font-weight:600;font-size:13px}
+.btn-analyse:hover{background:var(--blue-text)}
+.btn-book{padding:8px 16px;background:var(--green-mid);color:#e1f5ee;border:none;border-radius:var(--radius);cursor:pointer;font-weight:600;font-size:13px;margin-left:auto}
+.btn-book:hover{background:var(--green-text)}
+.btn-book:disabled{background:var(--bg2);color:var(--text3);cursor:not-allowed;border:0.5px solid var(--border)}
+/* Status */
+.status-row{display:flex;align-items:center;gap:8px;margin-top:10px;min-height:20px}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.status-dot.ready{background:#1D9E75}
+.status-dot.warn{background:#BA7517}
+.status-dot.booked{background:#534AB7}
+.status-dot.idle{background:var(--border2)}
+.status-txt{font-size:11px;color:var(--text2)}
+/* Log */
+.log-section{margin-top:28px}
+.log-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.sum-card{background:var(--bg2);border-radius:var(--radius);padding:12px 14px}
+.sum-card .sl{font-size:10px;color:var(--text3);margin-bottom:3px}
+.sum-card .sv{font-size:16px;font-weight:600;color:var(--text)}
+.sum-card .sv.rev{color:var(--green-mid)}
+.client-group{margin-bottom:16px}
+.client-header{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--bg2);border-radius:var(--radius);margin-bottom:6px;border:0.5px solid var(--border)}
+.client-name{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.client-meta{font-size:11px;color:var(--text3)}
+.client-pill{font-size:9px;padding:2px 8px;border-radius:4px;font-weight:600}
+.pill-count{background:var(--purple-bg);color:var(--purple-text)}
+.pill-rev{background:var(--green-bg);color:var(--green-text)}
+.tr-head{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;padding:0 14px 5px;display:grid;grid-template-columns:100px 105px 1fr 1fr 1fr 1fr 95px 30px;gap:8px}
+.trade-row{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:9px 14px;margin-bottom:5px;display:grid;grid-template-columns:100px 105px 1fr 1fr 1fr 1fr 95px 30px;gap:8px;align-items:center;font-size:12px}
+.trade-row:hover{border-color:var(--border2)}
+.td{color:var(--text)}
+.td.muted{color:var(--text2)}
+.td.rev{color:var(--green-mid);font-weight:600}
+.pair-tag{font-size:10px;font-weight:600;padding:2px 6px;background:var(--blue-bg);color:var(--blue-text);border-radius:4px;display:inline-block}
+.dir-tag{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600}
+.dir-buy{background:var(--green-bg);color:var(--green-text)}
+.dir-sell{background:#faece7;color:#712b13}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:3px;border-radius:4px;font-size:15px;line-height:1;display:flex;align-items:center}
+.del-btn:hover{color:#D85A30}
+.empty-log{text-align:center;padding:3rem 1rem;color:var(--text3);font-size:13px;border:0.5px dashed var(--border2);border-radius:var(--radius-lg)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#0F6E56;color:#E1F5EE;font-size:12px;font-weight:600;padding:10px 20px;border-radius:var(--radius);white-space:nowrap;transition:transform .3s ease;z-index:100}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.results-box{display:none}
+.note{font-size:10px;color:var(--text3);padding:6px 10px;background:var(--bg2);border-radius:var(--radius);border:0.5px solid var(--border);margin-bottom:12px}
+/* Auto-fill styles */
+input.live-blue{background:var(--blue-bg)!important;border-color:var(--blue-mid)!important;color:var(--blue-text)!important;font-weight:600}
+input.live-amber{background:var(--amber-bg)!important;border-color:var(--amber-mid)!important;color:var(--amber-text)!important;font-weight:600}
+@keyframes flashField{0%{opacity:.4}100%{opacity:1}}
+.field-flash{animation:flashField .35s ease-out}
+.hint-blue{color:var(--blue-mid)!important}
+.hint-amber{color:var(--amber-mid)!important}
+.hint-warn{color:#BA7517!important}
+
+@media(max-width:700px){
+  .page{padding:14px 12px 48px}
+  .dash-title{font-size:16px}
+  .dash-sub{font-size:11px}
+  .note{font-size:9px}
+
+  /* Tickers: 3 cols on mobile (fits iPhone well) */
+  .ticker-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .rfr-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .pair-card,.rfr-card{padding:8px 10px}
+  .pair-rate{font-size:14px}
+  .pair-rate .pip{font-size:16px}
+  .rfr-rate{font-size:15px}
+  .rfr-rate span{font-size:11px}
+
+  /* Form grids: all single column */
+  .grid3,.grid4{grid-template-columns:1fr}
+  .card{padding:14px 12px}
+
+  /* Results: 2 cols */
+  .res-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rev-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+  /* Buttons: stack */
+  .btn-row{flex-direction:column;align-items:stretch}
+  .btn-row button,.btn-analyse,.btn-book{width:100%;margin-left:0;text-align:center;justify-content:center}
+  .btn-book{margin-top:0}
+
+  /* Log summary: single col */
+  .log-summary{grid-template-columns:1fr}
+
+  /* Trade rows: card layout instead of grid */
+  .tr-head{display:none}
+  .trade-row{grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto auto;gap:6px;padding:10px 12px}
+  .trade-row .td:nth-child(1){font-size:10px;color:var(--text3)}
+  .trade-row .td:nth-child(2){text-align:right}
+  .trade-row .td:nth-child(3){grid-column:span 2}
+  .trade-row .td:nth-child(4){font-weight:600}
+  .trade-row .td:nth-child(5){text-align:right}
+  .trade-row .td:nth-child(6){color:var(--text3);font-size:11px}
+  .trade-row .td:nth-child(7){text-align:right;font-weight:600;color:var(--green-mid)}
+  .trade-row .td:nth-child(8){position:absolute;top:10px;right:10px}
+  .trade-row{position:relative}
+
+  /* Section label spacing */
+  .section-label{margin-bottom:8px}
+  .divider{margin:12px 0}
+  .row-label{margin-bottom:8px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="dash-header">
+  <div>
+    <div class="dash-title">FX Forward Sales</div>
+    <div class="dash-sub">Corporate Derivatives Desk</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div class="live-badge"><span class="live-dot"></span>Simulated rates</div>
+    <div class="ts" id="clock">—</div>
+  </div>
+</div>
+
+<div class="note"><i class="ti ti-info-circle" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>FX spot rates are simulated with realistic micro-movements. RFRs are seeded from current published levels (SOFR 3.60%, SONIA 4.45%, €STR 2.15%, TONA 0.23%, SARON 0.42%, CORRA 2.95%). Select currencies to auto-fill the RFR interest rate inputs.</div>
+
+<div class="section-label" style="margin-bottom:8px">Major FX pairs — spot <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:var(--text3)">· click a card to select</span></div>
+<div class="ticker-grid" id="fx-ticker" style="margin-bottom:8px"></div>
+<div class="section-label" style="margin-bottom:8px">Overnight risk-free rates <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:var(--text3)">· highlighted when matched to selected currencies</span></div>
+<div class="rfr-grid" id="rfr-ticker" style="margin-bottom:20px"></div>
+
+<div class="divider"></div>
+
+<div class="section-label">Trade hypothesis — FX forward pricer</div>
+<div class="card">
+  <div class="row-label"><i class="ti ti-building" style="font-size:14px"></i> Counterparty <span class="badge">required</span></div>
+  <div style="margin-bottom:16px">
+    <div class="field">
+      <label>Client name</label>
+      <input type="text" id="client" placeholder="e.g. Acme Corp Ltd"/>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="row-label"><i class="ti ti-arrows-exchange" style="font-size:14px"></i> Currency pair <span class="badge">required</span></div>
+  <div class="grid3" style="margin-bottom:16px">
+    <div class="field">
+      <label>Buy currency</label>
+      <select id="ccy1" onchange="onCcyChange()">
+        <option value="">— select —</option>
+        <option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option>
+        <option>CHF</option><option>CAD</option><option>NZD</option>
+        <option>SGD</option><option>HKD</option><option>NOK</option><option>SEK</option>
+        <option>DKK</option><option>MXN</option><option>ZAR</option><option>BRL</option>
+        <option>INR</option><option>CNH</option>
+      </select>
+      <div class="hint">Client receives</div>
+    </div>
+    <div class="field">
+      <label>Sell currency</label>
+      <select id="ccy2" onchange="onCcyChange()">
+        <option value="">— select —</option>
+        <option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option>
+        <option>CHF</option><option>CAD</option><option>NZD</option>
+        <option>SGD</option><option>HKD</option><option>NOK</option><option>SEK</option>
+        <option>DKK</option><option>MXN</option><option>ZAR</option><option>BRL</option>
+        <option>INR</option><option>CNH</option>
+      </select>
+      <div class="hint">Client delivers</div>
+    </div>
+    <div class="field">
+      <label>Notional (buy ccy)</label>
+      <input type="text" id="notional" placeholder="e.g. 5,000,000" inputmode="numeric"/>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="row-label"><i class="ti ti-calendar-due" style="font-size:14px"></i> Tenor &amp; settlement <span class="badge">required</span></div>
+  <div class="grid4" style="margin-bottom:16px">
+    <div class="field">
+      <label>Tenor</label>
+      <select id="tenor" onchange="tenorChanged()">
+        <option value="">— select —</option>
+        <option value="1W">1 week</option><option value="2W">2 weeks</option>
+        <option value="1M">1 month</option><option value="2M">2 months</option>
+        <option value="3M">3 months</option><option value="6M">6 months</option>
+        <option value="9M">9 months</option><option value="1Y">1 year</option>
+        <option value="18M">18 months</option><option value="2Y">2 years</option>
+        <option value="custom">Custom date</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Value date</label>
+      <input type="date" id="valuedate"/>
+      <div class="hint">T+2 spot default</div>
+    </div>
+    <div class="field">
+      <label>Trade date</label>
+      <input type="date" id="tradedate"/>
+    </div>
+    <div class="field">
+      <label>Days to maturity</label>
+      <input type="number" id="dtm" placeholder="auto" readonly/>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="row-label"><i class="ti ti-chart-line" style="font-size:14px"></i> Pricing inputs <span class="badge">required</span></div>
+  <div class="grid4" style="margin-bottom:16px">
+    <div class="field">
+      <label>Spot rate</label>
+      <input type="number" id="spot" placeholder="e.g. 1.1532" step="any"/>
+      <div class="hint" id="spot-hint">Enter mid-market spot rate</div>
+    </div>
+    <div class="field">
+      <label>Strike rate</label>
+      <input type="number" id="strike" placeholder="e.g. 1.1680" step="any"/>
+      <div class="hint">Agreed forward rate</div>
+    </div>
+    <div class="field">
+      <label id="r1-label">Buy ccy rate (%)</label>
+      <input type="number" id="r1" placeholder="auto from RFR" step="any"/>
+      <div class="hint" id="r1-hint">Select buy currency to auto-fill</div>
+    </div>
+    <div class="field">
+      <label id="r2-label">Sell ccy rate (%)</label>
+      <input type="number" id="r2" placeholder="auto from RFR" step="any"/>
+      <div class="hint" id="r2-hint">Select sell currency to auto-fill</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="row-label"><i class="ti ti-adjustments-horizontal" style="font-size:14px"></i> Commercial <span class="badge opt">optional</span></div>
+  <div class="grid4" style="margin-bottom:4px">
+    <div class="field">
+      <label>Sales margin (pips)</label>
+      <input type="number" id="margin" placeholder="e.g. 15" step="any"/>
+    </div>
+    <div class="field">
+      <label>Salesperson</label>
+      <input type="text" id="sales" placeholder="e.g. J. Williams"/>
+    </div>
+    <div class="field">
+      <label>Deal type</label>
+      <select id="dealtype">
+        <option>Outright forward</option><option>Window forward</option>
+        <option>Non-deliverable (NDF)</option><option>FX swap</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Settlement</label>
+      <select id="settlement">
+        <option>Physical delivery</option><option>Cash settled (NDF)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-analyse" onclick="price()"><i class="ti ti-calculator" style="font-size:14px;margin-right:5px;vertical-align:-2px"></i>Price &amp; analyse</button>
+    <button onclick="clearAll()"><i class="ti ti-refresh" style="font-size:13px;margin-right:4px;vertical-align:-2px"></i>Clear all fields</button>
+    <button class="btn-book" id="bookBtn" onclick="bookTrade()" disabled><i class="ti ti-check" style="font-size:14px;margin-right:5px;vertical-align:-2px"></i>Book</button>
+  </div>
+
+  <div class="status-row">
+    <div class="status-dot idle" id="sdot"></div>
+    <div class="status-txt" id="stxt">Select currencies above — spot and RFR rates will auto-populate</div>
+  </div>
+
+  <div class="results-box" id="results-box">
+    <div class="divider"></div>
+    <div class="row-label" style="margin-bottom:10px"><i class="ti ti-report-analytics" style="font-size:14px"></i> Hypothetical analysis</div>
+    <div class="fwd-note" id="fwd-explain"></div>
+    <div class="res-grid" id="res-grid"></div>
+    <div style="margin-top:10px" id="res-grid2" class="res-grid"></div>
+    <div class="rev-banner">
+      <div class="rev-header"><i class="ti ti-coin" style="font-size:14px"></i>Desk revenue</div>
+      <div class="rev-grid" id="rev-grid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="log-section">
+  <div class="section-label">Booked trade log</div>
+  <div id="log-summary-wrap" style="display:none" class="log-summary">
+    <div class="sum-card"><div class="sl">Total trades</div><div class="sv" id="sum-trades">0</div></div>
+    <div class="sum-card"><div class="sl">Total notional (buy ccy)</div><div class="sv" id="sum-notional">—</div></div>
+    <div class="sum-card"><div class="sl">Total desk revenue</div><div class="sv rev" id="sum-rev">—</div></div>
+  </div>
+  <div>
+    <div class="empty-log" id="empty-log">
+      <i class="ti ti-file-off" style="font-size:26px;display:block;margin-bottom:10px;color:var(--text3)"></i>
+      No trades booked yet.<br>
+      <span style="font-size:12px;color:var(--text3)">Price a trade above, then click <strong>Book</strong> to add it here.</span>
+    </div>
+    <div id="log-body"></div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── FX Ticker data ──────────────────────────────────────────── */
+const FX_PAIRS=[
+  {sym:'EUR/USD',c1:'EUR',c2:'USD',rate:1.15322,spread:0.00002,decimals:5,pip:4},
+  {sym:'GBP/USD',c1:'GBP',c2:'USD',rate:1.33980,spread:0.00002,decimals:5,pip:4},
+  {sym:'USD/JPY',c1:'USD',c2:'JPY',rate:160.225,spread:0.020,  decimals:3,pip:2},
+  {sym:'USD/CHF',c1:'USD',c2:'CHF',rate:0.79654,spread:0.00002,decimals:5,pip:4},
+  {sym:'USD/CAD',c1:'USD',c2:'CAD',rate:1.38850,spread:0.00003,decimals:5,pip:4},
+];
+const fxState=FX_PAIRS.map(p=>({...p,change:0,changePct:0}));
+
+/* ── RFR data ────────────────────────────────────────────────── */
+/* Seeded from latest published levels Jun 2026 */
+const RFR_BASE=[
+  {name:'€STR',  ccy:'EUR', cb:'ECB',  rate:2.15, pair:'EUR/USD'},
+  {name:'SONIA', ccy:'GBP', cb:'BoE',  rate:4.45, pair:'GBP/USD'},
+  {name:'TONA',  ccy:'JPY', cb:'BoJ',  rate:0.23, pair:'USD/JPY'},
+  {name:'SARON', ccy:'CHF', cb:'SNB',  rate:0.42, pair:'USD/CHF'},
+  {name:'CORRA', ccy:'CAD', cb:'BoC',  rate:2.95, pair:'USD/CAD'},
+  {name:'SOFR',  ccy:'USD', cb:'Fed',  rate:3.60, pair:'USD (all)'},
+];
+const rfrState=RFR_BASE.map(r=>({...r}));
+
+/* ── RFR lookup by currency ──────────────────────────────────── */
+function getRFR(ccy){
+  const r=rfrState.find(r=>r.ccy===ccy);
+  return r?r.rate:null;
+}
+function getRFRName(ccy){
+  const r=rfrState.find(r=>r.ccy===ccy);
+  return r?r.name:null;
+}
+
+/* ── Build FX ticker ─────────────────────────────────────────── */
+function fmtPip(r,d,pip){const s=r.toFixed(d);const cut=s.length-(d-pip);return{pre:s.slice(0,cut),big:s.slice(cut,cut+2),rest:s.slice(cut+2)};}
+
+function buildFxTicker(){
+  document.getElementById('fx-ticker').innerHTML=fxState.map((p,i)=>
+    `<div class="pair-card" id="fxc-${i}" onclick="clickFxCard(${i})" title="Click to select ${p.sym}">
+      <div class="pair-name">${p.sym}</div>
+      <div class="pair-rate" id="fxr-${i}">—</div>
+      <div class="pair-chg" id="fxch-${i}">—</div>
+      <div class="pair-spread" id="fxsp-${i}">—</div>
+    </div>`).join('');
+  updateFxTicker();
+}
+
+function updateFxTicker(){
+  fxState.forEach((p,i)=>{
+    const{pre,big,rest}=fmtPip(p.rate,p.decimals,p.pip);
+    document.getElementById('fxr-'+i).innerHTML=`${pre}<span class="pip">${big}</span>${rest}`;
+    const sign=p.change>=0?'+':'';const cls=p.change>=0?'up':'dn';const arr=p.change>=0?'▲':'▼';
+    const el=document.getElementById('fxch-'+i);el.className='pair-chg '+cls;
+    el.innerHTML=`${arr} ${sign}${p.change.toFixed(p.decimals)} (${sign}${p.changePct.toFixed(2)}%)`;
+    document.getElementById('fxsp-'+i).textContent=`Bid ${p.rate.toFixed(p.decimals)} · Ask ${(p.rate+p.spread).toFixed(p.decimals)}`;
+  });
+}
+
+function tickFx(){
+  fxState.forEach((p,i)=>{
+    const base=FX_PAIRS[i].rate,vol=base*0.00015,prev=p.rate;
+    p.rate=Math.max(base*0.998,Math.min(base*1.002,p.rate+(Math.random()-.5)*vol*2));
+    p.change=p.rate-base;p.changePct=(p.change/base)*100;
+    const card=document.getElementById('fxc-'+i);
+    if(p.rate>prev){card.classList.remove('flash-dn');void card.offsetWidth;card.classList.add('flash-up')}
+    else if(p.rate<prev){card.classList.remove('flash-up');void card.offsetWidth;card.classList.add('flash-dn')}
+  });
+  updateFxTicker();
+  syncAllFields();
+}
+
+function clickFxCard(i){
+  document.getElementById('ccy1').value=fxState[i].c1;
+  document.getElementById('ccy2').value=fxState[i].c2;
+  onCcyChange();
+}
+
+/* ── Build RFR ticker ────────────────────────────────────────── */
+function buildRfrTicker(){
+  document.getElementById('rfr-ticker').innerHTML=rfrState.map((r,i)=>
+    `<div class="rfr-card${r.ccy==='USD'?' rfr-usd':''}" id="rfrc-${i}">
+      <div class="rfr-pair">${r.pair}</div>
+      <div class="rfr-name">${r.name} · ${r.ccy}</div>
+      <div class="rfr-rate" id="rfrr-${i}">${r.rate.toFixed(2)}<span>%</span></div>
+      <div class="rfr-cb">${r.cb} overnight</div>
+    </div>`).join('');
+}
+
+function highlightRfr(){
+  const buy=document.getElementById('ccy1').value;
+  const sell=document.getElementById('ccy2').value;
+  rfrState.forEach((r,i)=>{
+    const card=document.getElementById('rfrc-'+i);
+    card.classList.remove('active-buy','active-sell','active-both');
+    const isBuy=r.ccy===buy,isSell=r.ccy===sell;
+    if(isBuy&&isSell)card.classList.add('active-both');
+    else if(isBuy)card.classList.add('active-buy');
+    else if(isSell)card.classList.add('active-sell');
+  });
+}
+
+/* ── Spot auto-fill ──────────────────────────────────────────── */
+function syncSpot(buy,sell){
+  /* spot rate is entered manually — not auto-filled */
+}
+
+/* ── RFR auto-fill ───────────────────────────────────────────── */
+function syncRfr(buy,sell){
+  const r1El=document.getElementById('r1');
+  const r2El=document.getElementById('r2');
+  const h1El=document.getElementById('r1-hint');
+  const h2El=document.getElementById('r2-hint');
+  const l1El=document.getElementById('r1-label');
+  const l2El=document.getElementById('r2-label');
+
+  /* Buy ccy rate */
+  if(buy){
+    const rate=getRFR(buy);
+    const rname=getRFRName(buy);
+    if(rate!==null){
+      const newVal=rate.toFixed(2);
+      const changed=r1El.value!==newVal;
+      r1El.value=newVal;
+      r1El.className='live-blue';
+      if(changed){r1El.classList.add('field-flash');setTimeout(()=>r1El.classList.remove('field-flash'),400);}
+      h1El.textContent='Live: '+rname+' ('+buy+')';
+      h1El.className='hint hint-blue';
+      l1El.textContent=buy+' rate % ('+rname+')';
+    } else {
+      r1El.className='';
+      h1El.textContent=buy+' RFR not in ticker — enter manually';
+      h1El.className='hint hint-warn';
+      l1El.textContent=buy+' rate %';
+    }
+  } else {
+    r1El.className='';
+    h1El.textContent='Select buy currency to auto-fill';
+    h1El.className='hint';
+    l1El.textContent='Buy ccy rate (%)';
+  }
+
+  /* Sell ccy rate */
+  if(sell){
+    const rate=getRFR(sell);
+    const rname=getRFRName(sell);
+    if(rate!==null){
+      const newVal=rate.toFixed(2);
+      const changed=r2El.value!==newVal;
+      r2El.value=newVal;
+      r2El.className='live-amber';
+      if(changed){r2El.classList.add('field-flash');setTimeout(()=>r2El.classList.remove('field-flash'),400);}
+      h2El.textContent='Live: '+rname+' ('+sell+')';
+      h2El.className='hint hint-amber';
+      l2El.textContent=sell+' rate % ('+rname+')';
+    } else {
+      r2El.className='';
+      h2El.textContent=sell+' RFR not in ticker — enter manually';
+      h2El.className='hint hint-warn';
+      l2El.textContent=sell+' rate %';
+    }
+  } else {
+    r2El.className='';
+    h2El.textContent='Select sell currency to auto-fill';
+    h2El.className='hint';
+    l2El.textContent='Sell ccy rate (%)';
+  }
+}
+
+/* ── FX card highlighting ─────────────────────────────────────── */
+function highlightFxCards(buy,sell){
+  fxState.forEach((p,i)=>{
+    const matches=(p.c1===buy&&p.c2===sell)||(p.c2===buy&&p.c1===sell);
+    document.getElementById('fxc-'+i).classList.toggle('selected',matches);
+  });
+}
+
+/* ── Master sync ─────────────────────────────────────────────── */
+function syncAllFields(){
+  const buy=document.getElementById('ccy1').value;
+  const sell=document.getElementById('ccy2').value;
+  syncSpot(buy,sell);
+  syncRfr(buy,sell);
+  highlightFxCards(buy,sell);
+  highlightRfr();
+}
+
+function onCcyChange(){syncAllFields();}
+
+/* ── Clock ───────────────────────────────────────────────────── */
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' UTC';}
+
+/* ── Init ────────────────────────────────────────────────────── */
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',init);
+} else {
+  init();
+}
+function init(){
+  buildFxTicker();buildRfrTicker();updateClock();
+  setInterval(tickFx,2000);setInterval(updateClock,1000);
+  document.getElementById('tradedate').value=new Date().toISOString().slice(0,10);
+  document.getElementById('notional').addEventListener('blur',function(){
+    const raw=this.value.replace(/,/g,'');
+    const n=parseFloat(raw);
+    if(!isNaN(n)&&n>0)this.value=n.toLocaleString('en-US');
+  });
+  document.getElementById('notional').addEventListener('focus',function(){
+    this.value=this.value.replace(/,/g,'');
+  });
+  renderLog();
+}
+
+/* ── Pricer logic ────────────────────────────────────────────── */
+let lastPriced=null,trades=[],tradeCounter=0;
+
+
+function tenorChanged(){
+  const t=document.getElementById('tenor').value;
+  const td=new Date();td.setDate(td.getDate()+2);let vd=new Date(td);
+  const map={'1W':7,'2W':14,'1M':30,'2M':61,'3M':91,'6M':182,'9M':273,'1Y':365,'18M':547,'2Y':730};
+  if(map[t])vd=new Date(td.getTime()+map[t]*864e5);
+  if(t&&t!=='custom')document.getElementById('valuedate').value=vd.toISOString().slice(0,10);
+  computeDTM();
+}
+function computeDTM(){
+  const vd=document.getElementById('valuedate').value,td=document.getElementById('tradedate').value||new Date().toISOString().slice(0,10);
+  if(vd){const diff=Math.round((new Date(vd)-new Date(td))/864e5);document.getElementById('dtm').value=diff>0?diff:'';}
+}
+document.getElementById('valuedate').addEventListener('change',computeDTM);
+document.getElementById('tradedate').addEventListener('change',computeDTM);
+
+function setStatus(state,txt){document.getElementById('sdot').className='status-dot '+state;document.getElementById('stxt').textContent=txt;}
+function fmtNum(n,dec){return n.toFixed(dec||4);}
+function fmtCcy(n,ccy){return(ccy?ccy+' ':'')+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});}
+function fmtDate(s){if(!s)return'—';return new Date(s).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
+function resCard(l,v,c,s){return`<div class="res-item"><div class="res-label">${l}</div><div class="res-val ${c||''}">${v}</div>${s?`<div style="font-size:9px;color:var(--text3);margin-top:2px">${s}</div>`:''}</div>`;}
+function revCard(l,v,s,h){return`<div class="rev-item${h?' rev-highlight':''}"><div class="rev-label">${l}</div><div class="rev-val">${v}</div>${s?`<div class="rev-sub">${s}</div>`:''}</div>`;}
+
+function price(){
+  const c1=document.getElementById('ccy1').value,c2=document.getElementById('ccy2').value;
+  const notional=parseFloat(document.getElementById('notional').value.replace(/,/g,''));
+  const spot=parseFloat(document.getElementById('spot').value);
+  const strike=parseFloat(document.getElementById('strike').value);
+  const r1=parseFloat(document.getElementById('r1').value)/100;
+  const r2=parseFloat(document.getElementById('r2').value)/100;
+  const dtm=parseFloat(document.getElementById('dtm').value);
+  const mp=parseFloat(document.getElementById('margin').value)||0;
+  const client=document.getElementById('client').value.trim();
+  const errs=[];
+  if(!client)errs.push('enter client name');
+  if(!c1||!c2)errs.push('select both currencies');
+  if(c1===c2)errs.push('currencies must differ');
+  if(isNaN(notional)||notional<=0)errs.push('enter a valid notional');
+  if(isNaN(spot)||spot<=0)errs.push('enter a valid spot rate');
+  if(isNaN(r1))errs.push('enter buy ccy interest rate');
+  if(isNaN(r2))errs.push('enter sell ccy interest rate');
+  if(isNaN(dtm)||dtm<=0)errs.push('set a valid value date / tenor');
+  if(errs.length){setStatus('warn','Fix: '+errs.join(' · '));document.getElementById('bookBtn').disabled=true;return;}
+  const T=dtm/365,fwdMid=spot*Math.exp((r2-r1)*T),fwdPts=fwdMid-spot;
+  const pMult=(c2==='JPY'||c1==='JPY')?0.01:0.0001;
+  const mRate=mp*pMult,clientRate=fwdMid+mRate;
+  const usedStrike=isNaN(strike)||strike<=0?null:strike;
+  const cvMid=notional*fwdMid,mRev=notional*mRate,bps=(mRev/cvMid)*10000;
+  let mtm=null,mtmPct=null;
+  if(usedStrike){const disc=Math.exp(-r2*T);mtm=notional*(fwdMid-usedStrike)*disc;mtmPct=(mtm/(notional*spot))*100;}
+  const dec=(c2==='JPY'||c1==='JPY')?3:5;
+  const r1name=getRFRName(c1)||c1+' rate';
+  const r2name=getRFRName(c2)||c2+' rate';
+  lastPriced={id:null,client,c1,c2,notional,spot,strike:usedStrike,r1:r1*100,r2:r2*100,dtm,tenor:document.getElementById('tenor').value,tradeDate:document.getElementById('tradedate').value,valueDate:document.getElementById('valuedate').value,dir:'buy',marginPips:mp,marginRevenue:mRev,clientRate,fwdMid,fwdPoints:fwdPts,counterValueMid:cvMid,bps,mtm,mtmPct,dec,sales:document.getElementById('sales').value.trim(),dealtype:document.getElementById('dealtype').value,settlement:document.getElementById('settlement').value};
+  document.getElementById('fwd-explain').innerHTML=`<strong>Theoretical forward (CIP):</strong> ${c1}/${c2} spot ${fmtNum(spot,dec)} × e<sup>(${r2name} ${(r2*100).toFixed(2)}% − ${r1name} ${(r1*100).toFixed(2)}%) × T</sup> = <strong>${fmtNum(fwdMid,dec)}</strong> · Fwd pts: ${fwdPts>=0?'+':''}${fmtNum(fwdPts*10000,1)} pips · ${dtm} calendar days`;
+  document.getElementById('res-grid').innerHTML=resCard('Fair forward (mid)',fmtNum(fwdMid,dec))+resCard('Fwd points',(fwdPts>=0?'+':'')+fmtNum(fwdPts*10000,1)+' pips')+resCard('Client rate',fmtNum(clientRate,dec),'',mp?`incl. ${mp}p margin`:'no margin applied')+resCard('Fwd premium/discount',fwdPts>0?'+'+fmtNum(fwdPts/spot*100,3)+'%':fmtNum(fwdPts/spot*100,3)+'%',fwdPts>0?'pos':'neg');
+  document.getElementById('res-grid2').innerHTML=resCard('Notional',fmtCcy(notional,c1))+resCard('Counter value (mid)',fmtCcy(cvMid,c2))+resCard('MtM vs strike',usedStrike?(mtm>=0?'+':'')+fmtCcy(mtm,c2):'—',usedStrike?(mtm>=0?'pos':'neg'):'neu',usedStrike?`${mtmPct>=0?'+':''}${mtmPct.toFixed(2)}% of spot notional`:'enter strike to compute')+resCard('Margin (pips)',mp?mp+' pips':'—');
+  document.getElementById('rev-grid').innerHTML=revCard('Gross revenue ('+c2+')',mp>0?fmtCcy(mRev,c2):'—',mp>0?`${mp} pip margin × ${fmtCcy(notional,c1)} notional`:'set a sales margin to compute',true)+revCard('Spread (bps on NV)',mp>0?bps.toFixed(1)+' bps':'—',mp>0?'margin / counter value × 10,000':'')+revCard('Revenue / 1M notional',mp>0?fmtCcy((mRev/notional)*1e6,c2):'—',mp>0?`per ${fmtCcy(1e6,c1)} traded`:'')+revCard('Client all-in rate',fmtNum(clientRate,dec),'vs mid '+fmtNum(fwdMid,dec));
+  document.getElementById('results-box').style.display='block';
+  document.getElementById('bookBtn').disabled=false;
+  setStatus('ready',`Priced ${c1}/${c2} ${fmtCcy(notional,c1)} · ${dtm}d · fwd mid ${fmtNum(fwdMid,dec)} · ${r1name} ${(r1*100).toFixed(2)}% / ${r2name} ${(r2*100).toFixed(2)}%`);
+}
+
+function bookTrade(){
+  if(!lastPriced)return;
+  tradeCounter++;
+  const t={...lastPriced,id:'TRD-'+String(tradeCounter).padStart(4,'0'),bookedAt:new Date().toISOString()};
+  trades.push(t);trades.sort((a,b)=>new Date(b.tradeDate)-new Date(a.tradeDate));
+  renderLog();showToast('Trade '+t.id+' booked for '+t.client);
+  setStatus('booked','Booked as '+t.id+' · clear fields to price another trade');
+  document.getElementById('bookBtn').disabled=true;lastPriced=null;
+}
+function deleteTrade(id){if(confirm('Remove trade '+id+' from the log?')){trades=trades.filter(t=>t.id!==id);renderLog();}}
+function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3000);}
+
+function renderLog(){
+  const body=document.getElementById('log-body'),empty=document.getElementById('empty-log'),sumWrap=document.getElementById('log-summary-wrap');
+  if(!trades.length){empty.style.display='block';body.innerHTML='';sumWrap.style.display='none';return;}
+  empty.style.display='none';sumWrap.style.display='grid';
+  document.getElementById('sum-trades').textContent=trades.length;
+  document.getElementById('sum-notional').textContent=trades.reduce((s,t)=>s+t.notional,0).toLocaleString('en-US',{maximumFractionDigits:0})+' (mixed ccy)';
+  const totalRev=trades.reduce((s,t)=>s+t.marginRevenue,0);
+  document.getElementById('sum-rev').textContent=totalRev>0?totalRev.toLocaleString('en-US',{maximumFractionDigits:0})+' (mixed ccy)':'—';
+  const byClient={};trades.forEach(t=>{if(!byClient[t.client])byClient[t.client]=[];byClient[t.client].push(t);});
+  let html='';
+  Object.keys(byClient).sort().forEach(client=>{
+    const group=byClient[client];
+    const gRev=group.reduce((s,t)=>s+t.marginRevenue,0),gNot=group.reduce((s,t)=>s+t.notional,0);
+    html+=`<div class="client-group"><div class="client-header"><div class="client-name"><i class="ti ti-building" style="font-size:14px;color:var(--text3)"></i>${client}<span class="client-pill pill-count">${group.length} trade${group.length>1?'s':''}</span>${gRev>0?`<span class="client-pill pill-rev">Rev: ${gRev.toLocaleString('en-US',{maximumFractionDigits:0})}</span>`:''}</div><div class="client-meta">Notional: ${gNot.toLocaleString('en-US',{maximumFractionDigits:0})}</div></div><div class="tr-head"><div>Trade ID</div><div>Trade date</div><div>Pair / dir</div><div>Notional</div><div>Client rate</div><div>Value date</div><div>Revenue</div><div></div></div>`;
+    group.forEach(t=>{
+      const dec=t.dec||(t.c2==='JPY'||t.c1==='JPY'?3:5);
+      html+=`<div class="trade-row"><div class="td" style="font-variant-numeric:tabular-nums;font-size:11px">${t.id}</div><div class="td muted">${fmtDate(t.tradeDate)}</div><div class="td" style="display:flex;align-items:center;gap:5px"><span class="pair-tag">${t.c1}/${t.c2}</span><span class="dir-tag ${t.dir==='buy'?'dir-buy':'dir-sell'}">${t.dir==='buy'?'buy':'sell'}</span></div><div class="td">${fmtCcy(t.notional,t.c1)}</div><div class="td" style="font-variant-numeric:tabular-nums">${fmtNum(t.clientRate,dec)}</div><div class="td muted">${fmtDate(t.valueDate)}</div><div class="td rev">${t.marginRevenue>0?fmtCcy(t.marginRevenue,t.c2):'—'}</div><div><button class="del-btn" onclick="deleteTrade('${t.id}')" title="Remove trade"><i class="ti ti-x"></i></button></div></div>`;
+    });
+    html+=`</div>`;
+  });
+  body.innerHTML=html;
+}
+
+function clearAll(){
+  ['client','notional','spot','strike','r1','r2','margin','sales','dtm'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.className='';}});
+  ['ccy1','ccy2','tenor','dealtype','settlement'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
+  document.getElementById('tradedate').value=new Date().toISOString().slice(0,10);
+
+  document.getElementById('valuedate').value='';
+  document.getElementById('results-box').style.display='none';
+  document.getElementById('bookBtn').disabled=true;
+  document.getElementById('spot-hint').textContent='Enter mid-market spot rate';
+  document.getElementById('spot-hint').className='hint';
+  document.getElementById('r1-hint').textContent='Select buy currency to auto-fill';
+  document.getElementById('r1-hint').className='hint';
+  document.getElementById('r2-hint').textContent='Select sell currency to auto-fill';
+  document.getElementById('r2-hint').className='hint';
+  document.getElementById('r1-label').textContent='Buy ccy rate (%)';
+  document.getElementById('r2-label').textContent='Sell ccy rate (%)';
+  fxState.forEach((_,i)=>document.getElementById('fxc-'+i).classList.remove('selected'));
+  rfrState.forEach((_,i)=>document.getElementById('rfrc-'+i).classList.remove('active-buy','active-sell','active-both'));
+  setStatus('idle','Select currencies above — spot and RFR rates will auto-populate');
+  lastPriced=null;
+}
+
+</script>
+</body>
+</html>
